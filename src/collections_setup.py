@@ -1,29 +1,47 @@
 import streamlit as st
-import tempfile
 import chromadb
 import fitz 
+import os
 from chromadb.utils import embedding_functions
-import requests
+from chromadb.config import Settings
 from mylogging import configure_logging, toggle_logging, display_logs
 from text_processing import lines_chunking, paragraphs_chunking
 
+def get_database_directory():
+    """
+    Get the directory for storing the database.
+    """
+    # Use an absolute path for better reliability
+    parent_dir = os.path.abspath(os.path.join(os.getcwd(), os.pardir))
+    persist_dir = os.path.join(parent_dir, "database")
+    
+    # Log more information about the path
+    st.write(f"Database directory path: {persist_dir}")
+    st.write(f"Directory exists: {os.path.exists(persist_dir)}")
+    
+    # Create directory if it doesn't exist
+    os.makedirs(persist_dir, exist_ok=True)
+    
+    # Verify directory was created
+    st.write(f"Directory exists after creation: {os.path.exists(persist_dir)}")
+    st.write(f"Directory is writable: {os.access(persist_dir, os.W_OK)}")
+    
+    return persist_dir
+
 @st.cache_resource
-def get_temp_dir():
+def get_chroma_client():
     """
-    Get a temporary directory.
+    Get a ChromaDB client.
     """
-    return tempfile.TemporaryDirectory()
+    persist_dir = get_database_directory()
+    return chromadb.PersistentClient(path=persist_dir)
 
 def initialize_chromadb(EMBEDDING_MODEL):
     """
     Initialize ChromaDB client and embedding function.
     """
-    # Create a temporary directory for storing the database
-    temp_dir = get_temp_dir()
-    CHROMA_DATA_PATH = temp_dir.name
-
-    # Create a persistent client (creates a local database at CHROMA_DATA_PATH)
-    client = chromadb.PersistentClient(path=CHROMA_DATA_PATH)
+    # Create a persistent directory for storing the database
+    client = get_chroma_client()
 
     # Initialize an embedding function (using a Sentence Transformer model)
     embedding_func = embedding_functions.SentenceTransformerEmbeddingFunction(
@@ -44,10 +62,14 @@ def initialize_collection(client, embedding_func, collection_name):
 
     return collection
 
-def update_collection(collection, uploaded_files):
+def update_collection(collection, uploaded_files, session_state):
+    # Convert session_state to a set for efficient lookups
+    session_state_set = set(session_state)
+    
     for uploaded_file in uploaded_files:
-        if uploaded_file.name not in st.session_state["uploaded_files"]:
-            st.session_state["uploaded_files"].append(uploaded_file.name)  # Track uploaded file
+        if uploaded_file.name not in session_state_set:
+            # Add the file name to the session state set
+            session_state_set.add(uploaded_file.name)
             
             # Read file content
             if uploaded_file.type == "text/plain":  # Handling TXT files
@@ -69,7 +91,8 @@ def update_collection(collection, uploaded_files):
                 ids=[f"id{filename[:-4]}.{j}" for j in range(len(chunks))],
                 metadatas=[{"source": filename, "part": n} for n in range(len(chunks))],
             )
-        else:
-            continue
-
-    return collection
+    
+    # Convert the set back to a list for session state
+    updated_session_state = list(session_state_set)
+    
+    return collection, updated_session_state

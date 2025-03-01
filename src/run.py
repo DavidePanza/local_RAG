@@ -2,7 +2,7 @@ import streamlit as st
 import os
 from utils import configure_page, breaks, file_uploader, file_remover
 from mylogging import configure_logging, toggle_logging, display_logs
-from collections_setup import initialize_chromadb, initialize_collection, update_collection
+from collections_setup import initialize_chromadb, initialize_collection, update_collection, get_database_directory
 from ollama_setup import is_ollama_running, get_relevant_text, generate_answer, get_contextual_prompt
 
 if __name__ == "__main__":
@@ -24,8 +24,8 @@ if __name__ == "__main__":
     )
     breaks(1)
     
-    # Disable Chroma telemetry
-    os.environ["CHROMA_TELEMETRY_ENABLED"] = "False"
+    # # Disable Chroma telemetry
+    # os.environ["CHROMA_TELEMETRY_ENABLED"] = "False"
     
     # Initialize logger
     logger, log_stream = configure_logging()
@@ -44,7 +44,7 @@ if __name__ == "__main__":
     toggle_logging(logging_level, logger)
     st.divider()
 
-    # ---- Vecotor Store Setup ----
+    # ---- Vector Store Setup ----
     # Initialize ChromaDB and collection
     breaks(1)
     EMBEDDING_MODEL = "all-MiniLM-L6-v2"  
@@ -52,30 +52,87 @@ if __name__ == "__main__":
     collection_name = "my_collection"
     collection = initialize_collection(client, embedding_func, collection_name)
 
-    # Initialize session state for uploaded files
-    if "uploaded_files" not in st.session_state:
-        st.session_state["uploaded_files"] = []
+    # Define the directory for storing uploaded file names
+    database_dir = get_database_directory()
+    UPLOADED_FILES_LOG = os.path.join(database_dir, "uploaded_files.txt")
+
+    # Function to load the list of uploaded files
+    def load_uploaded_files():
+        if os.path.exists(UPLOADED_FILES_LOG):
+            with open(UPLOADED_FILES_LOG, "r") as f:
+                return f.read().splitlines()
+        return []
+
+    # Function to save the list of uploaded files
+    def save_uploaded_files(file_list):
+        with open(UPLOADED_FILES_LOG, "w") as f:
+            f.write("\n".join(file_list))
+
+    # # Function to remove a file and its associated vectors
+    # def remove_file_and_vectors(file_name, collection):
+    #     # Remove the file from the session state
+    #     st.session_state.uploaded_files = [f for f in st.session_state.uploaded_files if f != file_name]
+        
+    #     # Save the updated list of uploaded files
+    #     save_uploaded_files(st.session_state.uploaded_files)
+        
+    #     # Remove the associated vectors from the database
+    #     collection.delete(where={"filename": file_name})
+
+    def remove_file_and_vectors(file_name, collection):
+        """
+        Remove a file and its associated vectors from the database.
+        """
+        # Remove the file from the session state
+        st.session_state.uploaded_files = [f for f in st.session_state.uploaded_files if f != file_name]
+        
+        # Save the updated list of uploaded files
+        save_uploaded_files(st.session_state.uploaded_files)
+        
+        # Remove the associated vectors from the database
+        try:
+            # Delete vectors where the metadata field "source" matches the file name
+            collection.delete(where={"source": file_name})
+            st.success(f"Successfully removed {file_name} and its vectors from the database.")
+        except Exception as e:
+            st.error(f"Failed to remove vectors for {file_name}: {e}")
 
     # Upload files
-    _, col, _ = st.columns([.2, .4, .2])    
+    _, col, _ = st.columns([.2, .4, .2])
     with col:
-        st.markdown('<h3 style="text-align: center;">Drag and drop or click to upload multiple files:</h3>',
-        unsafe_allow_html=True)
+        st.markdown(
+            '<h3 style="text-align: center;">Drag and drop or click to upload multiple files:</h3>',
+            unsafe_allow_html=True
+        )
         uploaded_files = file_uploader()
         st.write(
-        "Uploaded files are processed to build a contextual knowledge base for the RAG model. " 
-        "When you submit a prompt, the model retrieves relevant information from these documents to generate more accurate and context-aware responses."
+            "Uploaded files are processed to build a contextual knowledge base for the RAG model. "
+            "When you submit a prompt, the model retrieves relevant information from these documents to generate more accurate and context-aware responses."
         )
-    breaks(1)   
+
+    # Get the current uploaded filenames
     current_uploaded_filenames = [file.name for file in uploaded_files] if uploaded_files else []
     logger.debug(f"\n\t-- Currently uploaded files:")
     logger.debug(current_uploaded_filenames)
 
-    # Remove files that were deleted from the uploader
-    file_remover(uploaded_files, st.session_state["uploaded_files"], collection, logger)
+    # Load the previously uploaded files
+    previously_uploaded_files = load_uploaded_files()
+    st.write(f"Previously uploaded files: {previously_uploaded_files}")
+
+    # Update the session state with the new uploaded files
+    st.session_state.uploaded_files = list(previously_uploaded_files)
+    st.write(f"Updated uploaded files: {st.session_state.uploaded_files}")
 
     # Update collection with uploaded files
-    collection = update_collection(collection, uploaded_files)
+    collection, updated_session_state = update_collection(
+        collection, uploaded_files, st.session_state["uploaded_files"]
+    )
+
+    # Update the session state
+    st.session_state["uploaded_files"] = updated_session_state
+    save_uploaded_files(st.session_state["uploaded_files"])
+    st.write(f"Collection count: {collection.count()}")
+    st.write(f"Files in database directory: {os.listdir(get_database_directory())}")
     logger.debug(f"\n\t-- Collection data currently uploaded:")
     data_head = collection.get(limit=5)
     for i, (metadata, document) in enumerate(zip(data_head["metadatas"], data_head["documents"]), start=1):
@@ -83,6 +140,16 @@ if __name__ == "__main__":
         logger.debug(f"Metadata: {metadata}")
         logger.debug(f"Document: {document}")
         logger.debug("-" * 40)
+
+    # Display the list of uploaded files
+    st.write("### Uploaded Files")
+    for file_name in st.session_state.uploaded_files:
+        col1, col2 = st.columns([0.8, 0.2])
+        with col1:
+            st.write(file_name)
+        with col2:
+            if st.button(f"Delete {file_name}"):
+                remove_file_and_vectors(file_name, collection)
 
     # ---- Response Generation ----
     # Ollama server details
