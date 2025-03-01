@@ -1,0 +1,117 @@
+import streamlit as st
+import os
+from utils import configure_page, breaks, file_uploader, file_remover
+from mylogging import configure_logging, toggle_logging, display_logs
+from collections_setup import initialize_chromadb, initialize_collection, update_collection
+from ollama_setup import is_ollama_running, get_relevant_text, generate_answer, get_contextual_prompt
+
+if __name__ == "__main__":
+
+    configure_page()
+    st.markdown("<h1 style='text-align: center;'>Streamlit RAG</h1>", unsafe_allow_html=True)
+    breaks(2)
+    st.write(
+        """
+        Welcome to this Streamlit app that demonstrates how to integrate the Retrieval-Augmented Generation (RAG) model with ChromaDB and Ollama.
+        
+        With this app, you can:
+        - Upload multiple text files to build a contextual knowledge base,
+        - Enter a custom prompt to generate a response, and
+        - Generate a response using the RAG model.
+        
+        **Note:** This app currently runs only on a local machine.
+        """
+    )
+    breaks(1)
+    
+    # Disable Chroma telemetry
+    os.environ["CHROMA_TELEMETRY_ENABLED"] = "False"
+    
+    # Initialize logger
+    logger, log_stream = configure_logging()
+    st.markdown(
+        """
+        <style>
+        /* This targets the selectbox container */
+        div[data-baseweb="select"] {
+            max-width: 150px;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    ) 
+    logging_level = st.selectbox("Select logging level", ['INFO', 'DEBUG', 'WARNING'], index=2)
+    toggle_logging(logging_level, logger)
+    st.divider()
+
+    # ---- Vecotor Store Setup ----
+    # Initialize ChromaDB and collection
+    breaks(1)
+    EMBEDDING_MODEL = "all-MiniLM-L6-v2"  
+    client, embedding_func = initialize_chromadb(EMBEDDING_MODEL)
+    collection_name = "my_collection"
+    collection = initialize_collection(client, embedding_func, collection_name)
+
+    # Initialize session state for uploaded files
+    if "uploaded_files" not in st.session_state:
+        st.session_state["uploaded_files"] = []
+
+    # Upload files
+    _, col, _ = st.columns([.2, .4, .2])    
+    with col:
+        st.markdown('<h3 style="text-align: center;">Drag and drop or click to upload multiple files:</h3>',
+        unsafe_allow_html=True)
+        uploaded_files = file_uploader()
+        st.write(
+        "Uploaded files are processed to build a contextual knowledge base for the RAG model. " 
+        "When you submit a prompt, the model retrieves relevant information from these documents to generate more accurate and context-aware responses."
+        )
+    breaks(1)   
+    current_uploaded_filenames = [file.name for file in uploaded_files] if uploaded_files else []
+    logger.debug(f"\n\t-- Currently uploaded files:")
+    logger.debug(current_uploaded_filenames)
+
+    # Remove files that were deleted from the uploader
+    file_remover(uploaded_files, st.session_state["uploaded_files"], collection, logger)
+
+    # Update collection with uploaded files
+    collection = update_collection(collection, uploaded_files)
+    logger.debug(f"\n\t-- Collection data currently uploaded:")
+    data_head = collection.get(limit=5)
+    for i, (metadata, document) in enumerate(zip(data_head["metadatas"], data_head["documents"]), start=1):
+        logger.debug(f"Item {i}:")
+        logger.debug(f"Metadata: {metadata}")
+        logger.debug(f"Document: {document}")
+        logger.debug("-" * 40)
+
+    # ---- Response Generation ----
+    # Ollama server details
+    BASE_URL = "http://127.0.0.1:11434/api"
+    MODEL = "llama3.2:1b"
+
+    # At the beginning of your app
+    if not is_ollama_running(BASE_URL, logger):
+        st.error("Ollama server is not running. Please start it with 'ollama serve' before continuing.")
+        st.stop()
+
+    # Streamlit UI
+    st.divider()
+    col1, _, col2 = st.columns([.6, .01, 1])
+    with col1:
+        st.subheader("Enter your prompt:")
+        query = st.text_area("", height=200)
+    relevant_text = get_relevant_text(collection, query=query, nresults=2)
+    logger.debug(f"\n\t-- Relevant text retrieved:")
+    logger.debug(relevant_text)
+    if st.button("Generate"):
+        if query.strip():
+            with st.spinner("Generating response..."):
+                context_query = get_contextual_prompt(query, relevant_text)
+                response, _ = generate_answer(BASE_URL, MODEL, context_query)
+                with col2:
+                    st.subheader("Response:")
+                    st.text_area("", value=response, height=200)
+        else:
+            st.warning("Please enter a prompt.")
+
+    display_logs(log_stream)
