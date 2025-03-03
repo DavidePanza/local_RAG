@@ -20,7 +20,7 @@ This code provides a way to use Retrieval-Augmented Generation (RAG) with Stream
 
 ## ⚙️ Installation Instructions
 
-### 🔧 Prerequisites
+### Prerequisites
 - Python 3.8 or higher
 - Git
 - Streamlit
