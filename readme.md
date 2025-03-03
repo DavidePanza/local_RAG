@@ -3,7 +3,7 @@
 ---
 
 ### 🎥 Demo Video
-[Watch the demo video](https://github.com/DavidePanza/streamlit_RAG/main/demo_video.mp4)
+[Watch the demo video](https://github.com/DavidePanza/streamlit_RAG/demo_video.mp4)
 
 ---
 
