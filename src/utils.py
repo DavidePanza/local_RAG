@@ -1,5 +1,6 @@
 import streamlit as st
 from mylogging import configure_logging, toggle_logging, display_logs
+import os
 
 def configure_page() -> None:
     """
@@ -34,15 +35,34 @@ def file_uploader() -> None:
     
     return uploaded_files
 
-def file_remover(uploaded_files, uploaded_files_names, collection, logger):
+# Function to load the list of uploaded files
+def load_uploaded_files(uploaded_files_log):
+    if os.path.exists(uploaded_files_log):
+        with open(uploaded_files_log, "r") as f:
+            return f.read().splitlines()
+    return []
+
+# Function to save the list of uploaded files
+def save_uploaded_files(file_list, uploaded_files_log):
+    with open(uploaded_files_log, "w") as f:
+        f.write("\n".join(file_list))
+
+def remove_file_and_vectors(file_name, collection, uploaded_files_log):
     """
-    Removes files that were deleted from the uploader.
+    Remove a file and its associated vectors from the database.
     """
-    for file_name in list(uploaded_files_names):
-        if file_name not in [file.name for file in uploaded_files]:
-            st.write(f"file {file_name} removed")
-            uploaded_files_names.remove(file_name) 
-            collection.delete(where={"source": file_name})
-            logger.debug(f"File {file_name} removed from collection.")
+    # Remove the file from the session state
+    st.session_state.uploaded_files = [f for f in st.session_state.uploaded_files if f != file_name]
     
+    # Save the updated list of uploaded files
+    save_uploaded_files(st.session_state.uploaded_files, uploaded_files_log)
+    
+    # Remove the associated vectors from the database
+    try:
+        # Delete vectors where the metadata field "source" matches the file name
+        collection.delete(where={"source": file_name})
+        st.success(f"Successfully removed {file_name} and its vectors from the database.")
+    except Exception as e:
+        st.error(f"Failed to remove vectors for {file_name}: {e}")
+
 

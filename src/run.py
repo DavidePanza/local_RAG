@@ -1,6 +1,6 @@
 import streamlit as st
 import os
-from utils import configure_page, breaks, file_uploader, file_remover
+from utils import configure_page, breaks, file_uploader, load_uploaded_files, save_uploaded_files, remove_file_and_vectors 
 from mylogging import configure_logging, toggle_logging, display_logs
 from collections_setup import initialize_chromadb, initialize_collection, update_collection, get_database_directory
 from ollama_setup import is_ollama_running, get_relevant_text, generate_answer, get_contextual_prompt
@@ -25,7 +25,7 @@ if __name__ == "__main__":
     breaks(1)
     
     # # Disable Chroma telemetry
-    # os.environ["CHROMA_TELEMETRY_ENABLED"] = "False"
+    os.environ["CHROMA_TELEMETRY_ENABLED"] = "False"
     
     # Initialize logger
     logger, log_stream = configure_logging()
@@ -43,10 +43,10 @@ if __name__ == "__main__":
     logging_level = st.selectbox("Select logging level", ['INFO', 'DEBUG', 'WARNING'], index=2)
     toggle_logging(logging_level, logger)
     st.divider()
+    breaks(1)
 
     # ---- Vector Store Setup ----
     # Initialize ChromaDB and collection
-    breaks(1)
     EMBEDDING_MODEL = "all-MiniLM-L6-v2"  
     client, embedding_func = initialize_chromadb(EMBEDDING_MODEL)
     collection_name = "my_collection"
@@ -55,47 +55,6 @@ if __name__ == "__main__":
     # Define the directory for storing uploaded file names
     database_dir = get_database_directory()
     UPLOADED_FILES_LOG = os.path.join(database_dir, "uploaded_files.txt")
-
-    # Function to load the list of uploaded files
-    def load_uploaded_files():
-        if os.path.exists(UPLOADED_FILES_LOG):
-            with open(UPLOADED_FILES_LOG, "r") as f:
-                return f.read().splitlines()
-        return []
-
-    # Function to save the list of uploaded files
-    def save_uploaded_files(file_list):
-        with open(UPLOADED_FILES_LOG, "w") as f:
-            f.write("\n".join(file_list))
-
-    # # Function to remove a file and its associated vectors
-    # def remove_file_and_vectors(file_name, collection):
-    #     # Remove the file from the session state
-    #     st.session_state.uploaded_files = [f for f in st.session_state.uploaded_files if f != file_name]
-        
-    #     # Save the updated list of uploaded files
-    #     save_uploaded_files(st.session_state.uploaded_files)
-        
-    #     # Remove the associated vectors from the database
-    #     collection.delete(where={"filename": file_name})
-
-    def remove_file_and_vectors(file_name, collection):
-        """
-        Remove a file and its associated vectors from the database.
-        """
-        # Remove the file from the session state
-        st.session_state.uploaded_files = [f for f in st.session_state.uploaded_files if f != file_name]
-        
-        # Save the updated list of uploaded files
-        save_uploaded_files(st.session_state.uploaded_files)
-        
-        # Remove the associated vectors from the database
-        try:
-            # Delete vectors where the metadata field "source" matches the file name
-            collection.delete(where={"source": file_name})
-            st.success(f"Successfully removed {file_name} and its vectors from the database.")
-        except Exception as e:
-            st.error(f"Failed to remove vectors for {file_name}: {e}")
 
     # Upload files
     _, col, _ = st.columns([.2, .4, .2])
@@ -116,7 +75,7 @@ if __name__ == "__main__":
     logger.debug(current_uploaded_filenames)
 
     # Load the previously uploaded files
-    previously_uploaded_files = load_uploaded_files()
+    previously_uploaded_files = load_uploaded_files(UPLOADED_FILES_LOG)
     st.write(f"Previously uploaded files: {previously_uploaded_files}")
 
     # Update the session state with the new uploaded files
@@ -130,7 +89,7 @@ if __name__ == "__main__":
 
     # Update the session state
     st.session_state["uploaded_files"] = updated_session_state
-    save_uploaded_files(st.session_state["uploaded_files"])
+    save_uploaded_files(st.session_state["uploaded_files"], UPLOADED_FILES_LOG)
     st.write(f"Collection count: {collection.count()}")
     st.write(f"Files in database directory: {os.listdir(get_database_directory())}")
     logger.debug(f"\n\t-- Collection data currently uploaded:")
@@ -149,7 +108,7 @@ if __name__ == "__main__":
             st.write(file_name)
         with col2:
             if st.button(f"Delete {file_name}"):
-                remove_file_and_vectors(file_name, collection)
+                remove_file_and_vectors(file_name, collection, UPLOADED_FILES_LOG)
 
     # ---- Response Generation ----
     # Ollama server details
