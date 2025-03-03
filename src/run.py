@@ -1,26 +1,33 @@
 import streamlit as st
 import os
-from utils import configure_page, breaks, file_uploader, load_uploaded_files, save_uploaded_files, remove_file_and_vectors 
+from utils import load_background_image, configure_page, breaks, file_uploader, load_uploaded_files, save_uploaded_files, remove_file_and_vectors 
 from mylogging import configure_logging, toggle_logging, display_logs
 from collections_setup import initialize_chromadb, initialize_collection, update_collection, get_database_directory
 from ollama_setup import is_ollama_running, get_relevant_text, generate_answer, get_contextual_prompt
+import warnings
+warnings.filterwarnings("ignore", message="`np.NaN` was removed in the NumPy 2.0 release. Use `np.nan` instead.")
 
 if __name__ == "__main__":
 
     configure_page()
-    st.markdown("<h1 style='text-align: center;'>Streamlit RAG</h1>", unsafe_allow_html=True)
+    load_background_image()
     breaks(2)
     st.write(
         """
-        Welcome to this Streamlit app that demonstrates how to integrate the Retrieval-Augmented Generation (RAG) model with ChromaDB and Ollama.
-        
-        With this app, you can:
-        - Upload multiple text files to build a contextual knowledge base,
-        - Enter a custom prompt to generate a response, and
-        - Generate a response using the RAG model.
-        
-        **Note:** This app currently runs only on a local machine.
-        """
+    Welcome to this Streamlit app that demonstrates how to integrate the Retrieval-Augmented Generation (RAG) 
+    model with Ollama models and ChromaDB on a local machine.
+
+    With this app, you can:
+    - Upload multiple text files to build a contextual knowledge base,
+    - Enter a custom prompt to generate a response, and
+    - Generate a response using the RAG model.
+
+    **Note:** This app runs only on a local machine. It implements RAG with Ollama models using Streamlit and 
+    ChromaDB.  
+    Be aware that when you delete files, only the embeddings are removed, while the text chunks remain.  
+    Over time, this behavior can lead to an increase in the database size.  
+    To prevent excessive database growth, you may need to delete the existing database and instantiate a new one.
+    """
     )
     breaks(1)
     
@@ -57,13 +64,14 @@ if __name__ == "__main__":
     UPLOADED_FILES_LOG = os.path.join(database_dir, "uploaded_files.txt")
 
     # Upload files
-    _, col, _ = st.columns([.2, .4, .2])
-    with col:
+    col1_, _, col2_ = st.columns([.4, .1, .5])
+    with col1_:
         st.markdown(
-            '<h3 style="text-align: center;">Drag and drop or click to upload multiple files:</h3>',
+            '<h3>Drag and drop or click to upload multiple files:</h3>',
             unsafe_allow_html=True
         )
         uploaded_files = file_uploader()
+        breaks(1)
         st.write(
             "Uploaded files are processed to build a contextual knowledge base for the RAG model. "
             "When you submit a prompt, the model retrieves relevant information from these documents to generate more accurate and context-aware responses."
@@ -76,11 +84,11 @@ if __name__ == "__main__":
 
     # Load the previously uploaded files
     previously_uploaded_files = load_uploaded_files(UPLOADED_FILES_LOG)
-    st.write(f"Previously uploaded files: {previously_uploaded_files}")
+    logger.debug(f"Previously uploaded files: {previously_uploaded_files}")
 
     # Update the session state with the new uploaded files
     st.session_state.uploaded_files = list(previously_uploaded_files)
-    st.write(f"Updated uploaded files: {st.session_state.uploaded_files}")
+    logger.debug(f"Updated uploaded files: {st.session_state.uploaded_files}")
 
     # Update collection with uploaded files
     collection, updated_session_state = update_collection(
@@ -90,8 +98,8 @@ if __name__ == "__main__":
     # Update the session state
     st.session_state["uploaded_files"] = updated_session_state
     save_uploaded_files(st.session_state["uploaded_files"], UPLOADED_FILES_LOG)
-    st.write(f"Collection count: {collection.count()}")
-    st.write(f"Files in database directory: {os.listdir(get_database_directory())}")
+    logger.debug(f"Collection count: {collection.count()}")
+    logger.debug(f"Files in database directory: {os.listdir(get_database_directory())}")
     logger.debug(f"\n\t-- Collection data currently uploaded:")
     data_head = collection.get(limit=5)
     for i, (metadata, document) in enumerate(zip(data_head["metadatas"], data_head["documents"]), start=1):
@@ -100,15 +108,17 @@ if __name__ == "__main__":
         logger.debug(f"Document: {document}")
         logger.debug("-" * 40)
 
-    # Display the list of uploaded files
-    st.write("### Uploaded Files")
-    for file_name in st.session_state.uploaded_files:
-        col1, col2 = st.columns([0.8, 0.2])
-        with col1:
-            st.write(file_name)
-        with col2:
-            if st.button(f"Delete {file_name}"):
-                remove_file_and_vectors(file_name, collection, UPLOADED_FILES_LOG)
+    # Remove files from the database
+    with col2_:
+        st.write("### Select Files To Remove From Database")
+        breaks(1)
+        for file_name in st.session_state.uploaded_files:
+            col1, col2, _ = st.columns([0.2, 0.2, 0.2])
+            with col1:
+                st.write(file_name)
+            with col2:
+                if st.button("Delete", key=f"delete_{file_name}"):
+                    remove_file_and_vectors(file_name, collection, UPLOADED_FILES_LOG, database_dir)
 
     # ---- Response Generation ----
     # Ollama server details
@@ -121,23 +131,26 @@ if __name__ == "__main__":
         st.stop()
 
     # Streamlit UI
+    breaks(1)
     st.divider()
     col1, _, col2 = st.columns([.6, .01, 1])
     with col1:
         st.subheader("Enter your prompt:")
         query = st.text_area("", height=200)
-    relevant_text = get_relevant_text(collection, query=query, nresults=2)
-    logger.debug(f"\n\t-- Relevant text retrieved:")
-    logger.debug(relevant_text)
-    if st.button("Generate"):
+        generate_clicked = st.button("Generate Response")
+    if generate_clicked:
         if query.strip():
+            relevant_text = get_relevant_text(collection, query=query, nresults=2)
+            logger.debug("\n\t-- Relevant text retrieved:")
+            logger.debug(relevant_text)
             with st.spinner("Generating response..."):
                 context_query = get_contextual_prompt(query, relevant_text)
                 response, _ = generate_answer(BASE_URL, MODEL, context_query)
-                with col2:
-                    st.subheader("Response:")
-                    st.text_area("", value=response, height=200)
+            with col2:
+                st.subheader("Response:")
+                st.text_area("", value=response, height=200)
         else:
+            logger.debug("No query provided; skipping relevant text retrieval.")
             st.warning("Please enter a prompt.")
 
     display_logs(log_stream)

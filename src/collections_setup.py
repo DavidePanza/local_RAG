@@ -14,21 +14,12 @@ def get_database_directory():
     # Use an absolute path for better reliability
     parent_dir = os.path.abspath(os.path.join(os.getcwd(), os.pardir))
     persist_dir = os.path.join(parent_dir, "database")
-    
-    # Log more information about the path
-    st.write(f"Database directory path: {persist_dir}")
-    st.write(f"Directory exists: {os.path.exists(persist_dir)}")
-    
+
     # Create directory if it doesn't exist
     os.makedirs(persist_dir, exist_ok=True)
     
-    # Verify directory was created
-    st.write(f"Directory exists after creation: {os.path.exists(persist_dir)}")
-    st.write(f"Directory is writable: {os.access(persist_dir, os.W_OK)}")
-    
     return persist_dir
 
-@st.cache_resource
 def get_chroma_client():
     """
     Get a ChromaDB client.

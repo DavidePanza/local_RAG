@@ -27,7 +27,7 @@ def get_relevant_text(collection, query='', nresults=2, sim_th=None):
         similarities = [1 - d for d in query_result.get("distances")[0]]
         relevant_docs = [d for d, s in zip(docs, similarities) if s >= sim_th]
         return ''.join(relevant_docs)
-    return ''.join(docs)
+    return ''.join([doc for doc in docs if doc is not None])
 
 def generate_answer(base_url, model, prompt, context=[], top_k=5, top_p=0.9, temp=0.5):
     url = base_url + "/generate"
