@@ -5,4 +5,7 @@ Notes.docx
 files/
 data/
 notebooks/
+database/
 src/chromadb_data/
+src/__pycache__/
+src/chroma_exp.py
