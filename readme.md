@@ -2,6 +2,11 @@
 
 ---
 
+### 🎥 Demo Video
+[Watch the demo video](https://github.com/DavidePanza/streamlit_RAG/main/demo_video.mp4)
+
+---
+
 ## 📌 Overview
 This code provides a way to use Retrieval-Augmented Generation (RAG) with Streamlit as the user interface (UI), integrating Ollama models and ChromaDB on a local machine. It allows users to:
 - Upload multiple text files to build a knowledge base which can be accessed by the LLM 
