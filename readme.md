@@ -4,17 +4,10 @@
 
 ## 📌 Overview
 This code provides a way to use Retrieval-Augmented Generation (RAG) with Streamlit as the user interface (UI), integrating Ollama models and ChromaDB on a local machine. It allows users to:
-- Upload multiple text files
-- Retrieve relevant knowledge using RAG
+- Upload multiple text files to build a knowledge base which can be accessed by the LLM 
+- Retrieve relevant knowledge using RAG with Ollama models 
 - Generate AI-powered responses based on user queries
-
----
-
-## ✨ Features
-- Upload and manage multiple text files to build a knowledge base.  
-- Generate context-aware responses using RAG with Ollama models.  
-- Manage database size by clearing embeddings and text chunks as needed.  
-- Minimalistic and surrealistic design elements to enhance user experience.  
+- Manage database size by clearing embeddings and text chunks as needed (still need to be improved)
 
 ---
 
