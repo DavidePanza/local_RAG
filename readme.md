@@ -2,8 +2,8 @@
 
 ---
 
-### 🎥 Demo Video
-[Watch the demo video](https://github.com/DavidePanza/streamlit_RAG/blob/main/demo_video.gif)
+### 🎥 Demo 
+![Demo GIF](https://github.com/DavidePanza/streamlit_RAG/blob/main/demo_video.gif)
 
 ---
 
