@@ -2,6 +2,11 @@
 
 ---
 
+### 🎥 Demo 
+![Demo GIF](https://github.com/DavidePanza/streamlit_RAG/blob/main/demo.gif)
+
+---
+
 ## 📌 Overview
 This code lets you run RAG (Retrieval-Augmented Generation) locally with Streamlit as the UI, making it easy to use. With RAG, you can upload your private documents and search for relevant information by entering prompts into an LLM (Large Language Model). This implementation is designed for users who want to build a persistent local database of relevant information that can be expanded over time by adding new documents (.txt or .pdf).
 
@@ -13,11 +18,6 @@ What this implementation does:
 - Retrieves relevant information from your documents using RAG with Ollama models.
 - Generates AI-powered responses based on your queries.
 - Helps manage database size by clearing embeddings and text chunks when needed (still a work in progress).
-
----
-
-### 🎥 Demo 
-![Demo GIF](https://github.com/DavidePanza/streamlit_RAG/blob/main/demo.gif)
 
 ---
 
