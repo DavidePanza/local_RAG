@@ -3,16 +3,20 @@
 ---
 
 ### 🎥 Demo 
-![Demo GIF](https://github.com/DavidePanza/streamlit_RAG/blob/main/demo_video.gif)
+![Demo GIF](https://github.com/DavidePanza/streamlit_RAG/blob/main/demo.gif)
 
 ---
 
 ## 📌 Overview
-This code provides a way to use RAG on your local machine using Streamlit as UI to improve user experience. It integrates Ollama models together with ChromaDB database to store contaxtual informations. It allows users to:
-- Upload multiple text files to build a knowledge base which can be accessed by the LLM 
-- Retrieve relevant knowledge using RAG with Ollama models 
-- Generate AI-powered responses based on user queries
-- Manage database size by clearing embeddings and text chunks as needed (still need to be improved)
+This code lets you run RAG (Retrieval-Augmented Generation) locally with Streamlit as the UI, making it easy to use. With RAG, you can upload your private documents and search for relevant information by entering prompts into an LLM (Large Language Model). 
+
+This repo combines Ollama models with ChromaDB to store and retrieve contextual information efficiently. 
+
+What this implementation does:
+- Lets you upload multiple text files to build a searchable knowledge base for the LLM.
+- Retrieves relevant information from your documents using RAG with Ollama models.
+- Generates AI-powered responses based on your queries.
+- Helps manage database size by clearing embeddings and text chunks when needed (still a work in progress).
 
 ---
 
