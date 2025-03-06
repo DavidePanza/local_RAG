@@ -1,6 +1,7 @@
 import streamlit as st
 import requests
 from urllib.parse import urljoin
+import warnings
 
 def is_ollama_running(base_url, logger):
     """
