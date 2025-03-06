@@ -1,4 +1,4 @@
-# 🚀 Streamlit RAG Code with Ollama Models and ChromaDB
+# 🚀 Streamlit RAG with Ollama Models 
 
 ---
 
