@@ -2,6 +2,7 @@ import streamlit as st
 import logging
 import io
 
+
 def configure_logging():
     """
     Configure logging.
@@ -16,6 +17,7 @@ def configure_logging():
     logger.addHandler(handler)
     
     return logger, log_stream
+
 
 def toggle_logging(level, logger):
     """
@@ -32,6 +34,7 @@ def toggle_logging(level, logger):
         logger.setLevel(logging.WARNING)
     for handler in logger.handlers:
         handler.setLevel(logger.level)
+
 
 def display_logs(log_stream):
     """

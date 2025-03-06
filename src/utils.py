@@ -3,6 +3,7 @@ import os
 import sqlite3
 import base64
 
+
 def configure_page() -> None:
     """
     Configures the Streamlit page.
@@ -10,6 +11,7 @@ def configure_page() -> None:
     st.set_page_config(page_title="myRAG", 
                        layout="wide", 
                        page_icon=":rocket:")
+
 
 def breaks(n=1):
     """
@@ -24,12 +26,14 @@ def breaks(n=1):
     else:
         st.markdown("<br><br><br><br>",unsafe_allow_html=True)
 
+
 def get_base64_encoded_image(image_path):
     """
     Reads an image file and encodes it to Base64.
     """
     with open(image_path, "rb") as img_file:
         return base64.b64encode(img_file.read()).decode()
+
 
 def load_background_image():
     """
@@ -96,6 +100,7 @@ def load_background_image():
         unsafe_allow_html=True
     )
 
+
 def file_uploader() -> None:
     """
     Uploads multiple files.
@@ -122,23 +127,34 @@ def file_uploader() -> None:
     
     return uploaded_files
 
-# Function to load the list of uploaded files
+
 def load_uploaded_files(uploaded_files_log):
+    """
+    Load the list of uploaded files from a text file.
+    """
     if os.path.exists(uploaded_files_log):
         with open(uploaded_files_log, "r") as f:
             return f.read().splitlines()
     return []
 
-# Function to save the list of uploaded files
+
 def save_uploaded_files(file_list, uploaded_files_log):
+    """
+    Save the list of uploaded files to a text file.
+    """
     with open(uploaded_files_log, "w") as f:
         f.write("\n".join(file_list))
 
+
 def vacuum_db(db_path):
+    """
+    Run the VACUUM command on the SQLite database to optimize its performance.
+    """
     conn = sqlite3.connect(db_path)
     conn.execute("VACUUM;")
     conn.commit()
     conn.close()
+
 
 def remove_file_and_vectors(file_name, collection, uploaded_files_log, database_dir):
     """

@@ -3,6 +3,7 @@ import requests
 from urllib.parse import urljoin
 import warnings
 
+
 def is_ollama_running(base_url, logger):
     """
     Check if the Ollama server is running
@@ -19,6 +20,7 @@ def is_ollama_running(base_url, logger):
         print(f"Exception when connecting to Ollama: {e}")
         return False
     
+
 def get_relevant_text(collection, query='', nresults=2, sim_th=None):
     """Get relevant text from a collection for a given query"""
 
@@ -29,6 +31,7 @@ def get_relevant_text(collection, query='', nresults=2, sim_th=None):
         relevant_docs = [d for d, s in zip(docs, similarities) if s >= sim_th]
         return ''.join(relevant_docs)
     return ''.join([doc for doc in docs if doc is not None])
+
 
 def generate_answer(base_url, model, prompt, context=[], top_k=5, top_p=0.9, temp=0.5):
     url = base_url + "/generate"
@@ -47,6 +50,7 @@ def generate_answer(base_url, model, prompt, context=[], top_k=5, top_p=0.9, tem
     except requests.exceptions.RequestException as e:
         st.error(f"An error occurred: {e}")
         return "", []
+
 
 def get_contextual_prompt(question, context):
     contextual_prompt = (

@@ -7,6 +7,7 @@ from chromadb.config import Settings
 from mylogging import configure_logging, toggle_logging, display_logs
 from text_processing import lines_chunking, paragraphs_chunking
 
+
 def get_database_directory():
     """
     Get the directory for storing the database.
@@ -20,12 +21,14 @@ def get_database_directory():
     
     return persist_dir
 
+
 def get_chroma_client():
     """
     Get a ChromaDB client.
     """
     persist_dir = get_database_directory()
     return chromadb.PersistentClient(path=persist_dir)
+
 
 def initialize_chromadb(EMBEDDING_MODEL):
     """
@@ -41,6 +44,7 @@ def initialize_chromadb(EMBEDDING_MODEL):
 
     return client, embedding_func
 
+
 def initialize_collection(client, embedding_func, collection_name):
     """
     Initialize a collection in ChromaDB.
@@ -52,6 +56,7 @@ def initialize_collection(client, embedding_func, collection_name):
     )
 
     return collection
+
 
 def update_collection(collection, uploaded_files, session_state):
     # Convert session_state to a set for efficient lookups

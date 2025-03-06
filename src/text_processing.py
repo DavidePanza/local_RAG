@@ -4,6 +4,7 @@ from nltk.tokenize import sent_tokenize
 nltk.download('punkt_tab')
 nltk.download("punkt")  
 
+
 def paragraphs_chunking(text, max_words=200, max_sentence_words=50):
     """
     Splits text into structured chunks, preserving paragraph integrity and avoiding unnatural breaks.
@@ -44,6 +45,7 @@ def paragraphs_chunking(text, max_words=200, max_sentence_words=50):
             chunks.append(" ".join(chunk))
 
     return chunks
+
 
 def lines_chunking(text, max_words=200):
     """

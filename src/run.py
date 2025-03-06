@@ -110,6 +110,10 @@ if __name__ == "__main__":
     # Remove files from the database
     with col2_:
         st.write("### Select Files To Remove From Database")
+        available_docs = collection.count()
+        if available_docs == 0:
+            breaks(1)
+            st.warning("No documents available in the knowledge")
         breaks(1)
         for file_name in st.session_state.uploaded_files:
             col1, col2, _ = st.columns([0.2, 0.2, 0.2])
