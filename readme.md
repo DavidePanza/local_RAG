@@ -1,4 +1,4 @@
-# 🚀 Streamlit RAG with Ollama Models 
+# 🚀 Streamlit RAG with Ollama Models (Local)
 
 ---
 
