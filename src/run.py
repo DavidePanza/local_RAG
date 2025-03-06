@@ -137,19 +137,32 @@ if __name__ == "__main__":
         st.subheader("Enter your prompt:")
         query = st.text_area("", height=200)
         generate_clicked = st.button("Generate Response")
-    if generate_clicked:
-        if query.strip():
-            relevant_text = get_relevant_text(collection, query=query, nresults=2)
-            logger.debug("\n\t-- Relevant text retrieved:")
-            logger.debug(relevant_text)
-            with st.spinner("Generating response..."):
-                context_query = get_contextual_prompt(query, relevant_text)
-                response, _ = generate_answer(BASE_URL, MODEL, context_query)
-            with col2:
-                st.subheader("Response:")
-                st.text_area("", value=response, height=200)
+if generate_clicked:
+    if query.strip():
+        # Get the number of available documents in ChromaDB
+        available_docs = collection.count()
+
+        if available_docs > 0:
+            # Ensure n_results doesn't exceed available_docs
+            n_results = min(2, available_docs)
+            relevant_text = get_relevant_text(collection, query=query, nresults=n_results)
         else:
-            logger.debug("No query provided; skipping relevant text retrieval.")
-            st.warning("Please enter a prompt.")
+            relevant_text = ""  # No documents available, so no additional context
+            st.warning("No knowledge base available. Generating response based only on the prompt.")
+
+        logger.debug("\n\t-- Relevant text retrieved:")
+        logger.debug(relevant_text)
+
+        with st.spinner("Generating response..."):
+            context_query = get_contextual_prompt(query, relevant_text)
+            response, _ = generate_answer(BASE_URL, MODEL, context_query)
+
+        with col2:
+            st.subheader("Response:")
+            st.text_area("", value=response, height=200)
+    else:
+        logger.debug("No query provided; skipping relevant text retrieval.")
+        st.warning("Please enter a prompt.")
+
 
     display_logs(log_stream)
