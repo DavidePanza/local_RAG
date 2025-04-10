@@ -159,7 +159,7 @@ if __name__ == "__main__":
 
             with st.spinner("Generating response..."):
                 context_query = get_contextual_prompt(query, relevant_text)
-                response, _ = generate_answer(BASE_URL, MODEL, context_query)
+                response, _ = generate_answer(base_url=BASE_URL, model=MODEL, prompt=context_query)
 
             with col2:
                 st.subheader("Response:")
