@@ -49,9 +49,9 @@ def paragraphs_chunking(text, max_words=200, max_sentence_words=50):
 
 def lines_chunking(text, max_words=200):
     """
-    Splits text into structured chunks, preserving paragraph integrity and avoiding unnatural breaks.
-    - Uses paragraph-based splitting first.
-    - Splits long paragraphs into smaller chunks based on sentence boundaries.
+    Splits a text into semantically meaningful chunks without breaking sentences or paragraphs abruptly.
+    - Preserves paragraph boundaries by detecting empty lines as paragraph breaks.
+    - Further splits long paragraphs into sentence-based chunks, ensuring each chunk stays within a maximum word limit.
     """
     # Split text into lines
     lines = text.splitlines()
